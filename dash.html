@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard with Editable Users</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; }
+    .sidebar {
+      height: 100vh;
+      position: fixed;
+      width: 250px;
+      background-color: #f8f9fa;
+      padding-top: 20px;
+      z-index: 1000;
+    }
+    .sidebar a {
+      display: block;
+      padding: 12px;
+      text-decoration: none;
+      color: #333;
+      transition: background 0.2s;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background-color: #ddd;
+      font-weight: bold;
+    }
+    .content {
+      margin-left: 260px;
+      padding: 20px;
+      min-height: 100vh;
+      background: #f4f6fa;
+    }
+    .card { margin-bottom: 20px; }
+    @media (max-width: 768px) {
+      .sidebar { position: relative; height: auto; width: 100%; }
+      .content { margin-left: 0; }
+    }
+    .action-btns button {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h4 class="text-center">Dashboard</h4>
+    <a href="#" id="homeLink" class="active">Home</a>
+    <a href="#" id="usersLink">Users</a>
+    <a href="#registration" id="registerLink">Register</a>
+    <a href="#" id="ordersLink">Orders</a>
+    <a href="#" id="analyticsLink">Analytics</a>
+    <a href="#" id="settingsLink">Settings</a>
+  </div>
+
+  <div class="content">
+    <nav class="navbar navbar-light bg-light mb-4">
+      <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1" id="navbarTitle">Welcome, Laxmina</span>
+        <form class="d-flex">
+          <input class="form-control me-2" type="search" placeholder="Search" />
+        </form>
+      </div>
+    </nav>
+    <div id="dashboardContent">
+      <!-- Dashboard overview will be injected here by JS -->
+    </div>
+  </div>
+
+  <script>
+    // --- Dashboard Overview HTML ---
+    const dashboardHTML = `
+      <div class="row text-center">
+        <div class="col-md-3 col-sm-6">
+          <div class="card text-white bg-primary">
+            <div class="card-body">
+              <h5 class="card-title">Users</h5>
+              <p class="card-text fs-3">1,245</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="card text-white bg-success">
+            <div class="card-body">
+              <h5 class="card-title">Orders</h5>
+              <p class="card-text fs-3">895</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="card text-white bg-warning">
+            <div class="card-body">
+              <h5 class="card-title">Earnings</h5>
+              <p class="card-text fs-3">$12.3K</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="card text-white bg-danger">
+            <div class="card-body">
+              <h5 class="card-title">Visitors</h5>
+              <p class="card-text fs-3">3,580</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row mt-4">
+        <div class="col-md-6">
+          <canvas id="myChart"></canvas>
+        </div>
+        <div class="col-md-6">
+          <h5>Recent Orders</h5>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Item</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td>Ravi</td><td>Burger</td><td>Delivered</td></tr>
+              <tr><td>2</td><td>Priya</td><td>Pizza</td><td>Pending</td></tr>
+              <tr><td>3</td><td>Arjun</td><td>Fries</td><td>Cancelled</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="row mt-5" id="registration">
+        <div class="col-md-6">
+          <h5>User Registration</h5>
+          <form onsubmit="registerUser(event)">
+            <div class="mb-3">
+              <label for="name" class="form-label">Name</label>
+              <input type="text" class="form-control" id="name" placeholder="Enter name">
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" placeholder="Enter email">
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" id="password" placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn btn-primary">Register</button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    // --- Orders Section HTML ---
+    const ordersHTML = `
+      <div class="row">
+        <div class="col-md-8">
+          <h3>All Orders</h3>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Item</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td>Ravi</td><td>Burger</td><td><span class="badge bg-success">Delivered</span></td><td>2025-06-06</td></tr>
+              <tr><td>2</td><td>Priya</td><td>Pizza</td><td><span class="badge bg-warning text-dark">Pending</span></td><td>2025-06-07</td></tr>
+              <tr><td>3</td><td>Arjun</td><td>Fries</td><td><span class="badge bg-danger">Cancelled</span></td><td>2025-06-07</td></tr>
+              <tr><td>4</td><td>Neha</td><td>Sandwich</td><td><span class="badge bg-success">Delivered</span></td><td>2025-06-07</td></tr>
+              <tr><td>5</td><td>Vikas</td><td>Pasta</td><td><span class="badge bg-warning text-dark">Pending</span></td><td>2025-06-07</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-md-4">
+          <h5>Order Analytics</h5>
+          <canvas id="ordersChart"></canvas>
+        </div>
+      </div>
+    `;
+
+    // --- Analytics Section HTML ---
+    const analyticsHTML = `
+      <div class="row">
+        <div class="col-md-6">
+          <h5>Earnings Trend</h5>
+          <canvas id="earningsChart"></canvas>
+        </div>
+        <div class="col-md-6">
+          <h5>User Growth</h5>
+          <canvas id="userGrowthChart"></canvas>
+        </div>
+      </div>
+    `;
+
+    // --- Users Data (in-memory) ---
+    let usersData = [
+      { id: 1, name: "Seema", email: "seema@example.com", role: "Admin" },
+      { id: 2, name: "Ravi", email: "ravi@example.com", role: "User" },
+      { id: 3, name: "Priya", email: "priya@example.com", role: "User" },
+      { id: 4, name: "Arjun", email: "arjun@example.com", role: "Moderator" }
+    ];
+
+    // --- Users Table with Edit/Delete ---
+    function getUsersTableHTML(users) {
+      let rows = users.map(user =>
+        `<tr data-id="${user.id}">
+          <td>${user.id}</td>
+          <td class="user-name">${user.name}</td>
+          <td class="user-email">${user.email}</td>
+          <td class="user-role">${user.role}</td>
+          <td class="action-btns">
+            <button class="btn btn-sm btn-warning edit-btn">Edit</button>
+            <button class="btn btn-sm btn-danger delete-btn">Delete</button>
+          </td>
+        </tr>`
+      ).join('');
+      return `
+        <h3>All Users</h3>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // --- Render Dashboard Overview on Page Load ---
+    document.getElementById('dashboardContent').innerHTML = dashboardHTML;
+    renderDashboardCharts();
+
+    // --- Sidebar Navigation Handling ---
+    function setActive(linkId) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      document.getElementById(linkId).classList.add('active');
+    }
+
+    document.getElementById('homeLink').onclick = function(e) {
+      e.preventDefault();
+      setActive('homeLink');
+      document.getElementById('navbarTitle').textContent = "Welcome, Laxmina";
+      document.getElementById('dashboardContent').innerHTML = dashboardHTML;
+      renderDashboardCharts();
+    };
+
+    document.getElementById('ordersLink').onclick = function(e) {
+      e.preventDefault();
+      setActive('ordersLink');
+      document.getElementById('navbarTitle').textContent = "Orders";
+      document.getElementById('dashboardContent').innerHTML = ordersHTML;
+      renderOrdersChart();
+    };
+
+    document.getElementById('analyticsLink').onclick = function(e) {
+      e.preventDefault();
+      setActive('analyticsLink');
+      document.getElementById('navbarTitle').textContent = "Analytics";
+      document.getElementById('dashboardContent').innerHTML = analyticsHTML;
+      renderAnalyticsCharts();
+    };
+
+    document.getElementById('usersLink').onclick = function(e) {
+      e.preventDefault();
+      setActive('usersLink');
+      document.getElementById('navbarTitle').textContent = "Users";
+      renderUsersSection();
+    };
+
+    document.getElementById('settingsLink').onclick = function(e) {
+      e.preventDefault();
+      setActive('settingsLink');
+      document.getElementById('navbarTitle').textContent = "Settings";
+      document.getElementById('dashboardContent').innerHTML = "<h3>Settings (Demo)</h3><p>Show settings here.</p>";
+    };
+
+    document.getElementById('registerLink').onclick = function(e) {
+      setActive('registerLink');
+      document.getElementById('homeLink').click();
+      setTimeout(() => {
+        document.getElementById('registration').scrollIntoView({behavior: "smooth"});
+      }, 100);
+    };
+
+    // --- Chart Rendering Functions ---
+    function renderDashboardCharts() {
+      setTimeout(() => {
+        const ctx = document.getElementById('myChart');
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+              datasets: [{
+                label: 'Earnings ($)',
+                data: [1200, 1900, 3000, 2500, 2800, 3200],
+                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        }
+      }, 100);
+    }
+
+    function renderOrdersChart() {
+      setTimeout(() => {
+        const ctx = document.getElementById('ordersChart');
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: ['Delivered', 'Pending', 'Cancelled'],
+              datasets: [{
+                data: [2, 2, 1],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } }
+            }
+          });
+        }
+      }, 100);
+    }
+
+    function renderAnalyticsCharts() {
+      setTimeout(() => {
+        const ctx1 = document.getElementById('earningsChart');
+        if (ctx1) {
+          new Chart(ctx1, {
+            type: 'line',
+            data: {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+              datasets: [{
+                label: 'Earnings ($)',
+                data: [1200, 1900, 3000, 2500, 2800, 3200],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0,123,255,0.2)',
+                fill: true
+              }]
+            },
+            options: { responsive: true }
+          });
+        }
+        const ctx2 = document.getElementById('userGrowthChart');
+        if (ctx2) {
+          new Chart(ctx2, {
+            type: 'bar',
+            data: {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+              datasets: [{
+                label: 'Users',
+                data: [200, 400, 600, 800, 1000, 1245],
+                backgroundColor: '#17a2b8'
+              }]
+            },
+            options: { responsive: true }
+          });
+        }
+      }, 100);
+    }
+
+    // --- Users Section Render & Actions ---
+    function renderUsersSection() {
+      document.getElementById('dashboardContent').innerHTML = getUsersTableHTML(usersData);
+
+      // Attach Edit/Delete event listeners
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.onclick = function() {
+          const row = btn.closest('tr');
+          const id = parseInt(row.getAttribute('data-id'));
+          if (btn.textContent === "Edit") {
+            // Switch to edit mode
+            row.querySelector('.user-name').innerHTML = `<input type="text" class="form-control form-control-sm" value="${row.querySelector('.user-name').textContent}">`;
+            row.querySelector('.user-email').innerHTML = `<input type="email" class="form-control form-control-sm" value="${row.querySelector('.user-email').textContent}">`;
+            row.querySelector('.user-role').innerHTML = `<input type="text" class="form-control form-control-sm" value="${row.querySelector('.user-role').textContent}">`;
+            btn.textContent = "Save";
+            btn.classList.remove('btn-warning');
+            btn.classList.add('btn-success');
+          } else {
+            // Save changes
+            const name = row.querySelector('.user-name input').value.trim();
+            const email = row.querySelector('.user-email input').value.trim();
+            const role = row.querySelector('.user-role input').value.trim();
+            // Update in data array
+            const user = usersData.find(u => u.id === id);
+            user.name = name;
+            user.email = email;
+            user.role = role;
+            // Re-render table
+            renderUsersSection();
+          }
+        };
+      });
+
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.onclick = function() {
+          const row = btn.closest('tr');
+          const id = parseInt(row.getAttribute('data-id'));
+          if (confirm("Are you sure you want to delete this user?")) {
+            usersData = usersData.filter(u => u.id !== id);
+            renderUsersSection();
+          }
+        };
+      });
+    }
+
+    // --- Registration Form Handler ---
+    function registerUser(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      if (name && email && password) {
+        alert('Registration successful! Welcome, ' + name + '!');
+        document.getElementById('name').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('password').value = '';
+      } else {
+        alert('Please fill all fields.');
+      }
+    }
+    window.registerUser = registerUser;
+  </script>
+</body>
+</html>
